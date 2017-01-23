@@ -1,17 +1,19 @@
-0x1 前言
-当前已经成为和空气水食物并列的生存必需品的互联网，其典型的应用大多采用基于HTTP协议的B/S这一基础架构。作为自1994网景发布第一款浏览器以来就存在的这一技术体系，尽管20多年来不断发展，已经非常成熟，却依然有一个尴尬之处随着应用场景的不断丰富而越发显现。那就是作为客户端的浏览器，无法实时的接收来自服务端的信息推送，以至于后来大家想到用js脚本做定时器，周期性调用ajax轮询数据的方法曲线救国，直到html5出现。
+# 0x00 前言
+当前已经成为和空气水食物并列的生存必需品的互联网，其典型的应用大多采用基于HTTP协议的B/S这一基础架构。作为自1994网景发布第一款浏览器以来就存在的这一技术体系，尽管20多年来不断发展，已经非常成熟，却依然有一个尴尬之处随着应用场景的不断丰富而越发显现。那就是作为客户端的浏览器，无法实时的接收来自服务端的信息推送，以至于后来大家想到用js脚本周期性调用ajax轮询数据的方法曲线救国，直到html5的出现。
 
-html5加入了一个新特性叫websocket，它的作用是让浏览器开启一个和服务器之间的双向长连接，既可以向服务器发送信息，也可以实时接收来自服务器方向的推送，可以让用户愉快的进行聊天约炮，网游开黑，股市接盘这些实时交互性比较强的活动。谈笑风生的时候比上文提到的ajax方式高不知道哪去了。
+html5加入了一个非常重要的特性叫websocket，它的作用是让浏览器开启一个和服务器之间的双向长连接，既可以向服务器发送信息，也可以实时接收来自服务器方向的推送，特别适用与IM，股票期货交易，网游这类实时交互性比较强的应用场景。用websocket谈笑风生比上文提到的ajax方式高不知道哪去了。
 
-值得一提的是，作为html5的一个新特性，当前主流的浏览器均已支持websocket，比如chrome及其魔改，firefox，safari，ie9及以上（包括edge）。什么，你说ie6？不好意思不知道你说的这是什么东西。
+像其他HTML5的新特性一样，当前主流的浏览器均已支持websocket，比如chrome及其魔改，firefox，safari，ie9及以上（包括edge）。什么，你说ie6？不好意思不知道你说的这是什么东西。
 
-那么下面我们就开始构建一个最基本的websocket范例。
+本文主要分享我在学习websocket时的一些心得。
+
+# 0x01 一个简单的范例
 
 该范例参考tomcat自带的websocket example，这里做进一步的简化。
 
-首先用你习惯的ide创建一个普通的java工程。导入tomcat的lib目录下的两个websocket相关的jar包，tomcat-websoket.jar，websocket-api.jar。
+创建一个普通的java工程，该工程依赖tomcat的lib目录下的两个websocket相关的jar包，tomcat-websoket.jar，websocket-api.jar。
 
-然后创建以下两个类
+然后创建以下两个类：
 
 newWebsocket.SocketConfig
 ```java
@@ -72,7 +74,7 @@ public class EchoEndpoint extends Endpoint {
 
 其中，SocketConfig负责将EchoEndpoint注册到容器中，并且和/websocket/echo这个路径绑定。
 
-EchoEndpoint则是业务逻辑。在onOpen方法中注册了EchoMessageHandlerText这个Handler的实例，EchoMessageHandlerText的onMessage方法用于处理客户端发送过来的信息。当然，我们也可以在需要的时候主动调用RemoteEndpoint.Basic.sendText方法向客户端推送信息。
+EchoEndpoint则是业务逻辑。在onOpen方法中注册了EchoMessageHandlerText这个Handler的实例，EchoMessageHandlerText的onMessage方法用于处理客户端发送过来的信息。
 
 build这个工程，最终会生成这样一些.class文件。
 ```
@@ -86,13 +88,17 @@ newWebsocket
 
 启动tomcat后，用上述提到的支持websocket特性的浏览器打开http://127.0.0.1:8080/，如果tomcat启动成功，会看到tomcat的欢迎页面。不用管这个，打开开发者调试工具，输入以下javascript代码
 
+```javascript
 var ws = new WebSocket("ws://127.0.0.1:8080/examples/websocket/echo");
 ws.onmessage = function(event) {console.log(event.data)};
 ws.send("111");
+```
+*请注意跨域限制，如果当前浏览器没有打开127.0.0.1:8080域下的任何一个页面，以上javascript代码可能无法成功执行*
 
-这里以firefox为例，如果看到类似下图的调试页面打印出"111"，则表示websocket部署成功。
+这里以firefox为例，如果看到类似下图的调试页面打印出"111"，则表示websocket部署成功，且前端调用也正常。
 
 
+# 0x02 抓包分析
 依靠纯粹的http协议是无法实现websocket的，所以为了实现这个功能，其背后必然有一套不同于http的应用层协议作为支撑，该协议的标准文档是RFC6455-The WebSocket Protocol。顺便提一下，http的标准文档是RFC2616。
 
 接下来就根据实际抓包和标准文档进行比对来研究一下websocket在网络应用层的实现。
